@@ -11,9 +11,10 @@ server {
   }
 {% endif %}
 {% if jellyfin_generate_self_signed_certificate and jellyfin_redirect_HTTPS or jellyfin_letsencrypt and letsencrypt_certificate.stat.exists %}
-  location / {
-    rewrite ^ https://$server_name$request_uri? permanent;
-  }
+  #location / {
+  #  rewrite ^ https://$server_name$request_uri? permanent;
+  #}
+  return 301 https://$host$request_uri;
 {% else %}
   location / {
     # Proxy main Jellyfin traffic
@@ -99,6 +100,17 @@ server {
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Protocol $scheme;
+    proxy_set_header X-Forwarded-Host $http_host;
+  }
+    # location block for /web - This is purely for aesthetics so /web/#!/ works instead of having to go to /web/index.html/#!/
+  location = /web/ {
+    # Proxy main Jellyfin traffic
+    proxy_pass http://localhost:{{ jellyfin_HTTP_port }}/web/index.html;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
